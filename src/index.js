@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
 import App from './Components/App';
 import registerServiceWorker from './registerServiceWorker';
 
+import 'semantic-ui-css/semantic.min.css'
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Login from './Components/Auth/Login'
 import Register from './Components/Auth/Register'
