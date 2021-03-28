@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grid, Form, Segment, Button, Header, Message, Icon, Dimmer, Loader } from 'semantic-ui-react'
+import { Grid, Form, Segment, Button, Header, Message, Icon, Loader } from 'semantic-ui-react'
 import { Link } from 'react-router-dom'
 import firebase from '../../firebase'
 import md5 from 'md5'
@@ -67,8 +67,8 @@ class Register extends React.Component {
         .createUserWithEmailAndPassword(this.state.email, this.state.password)
         .then(createdUser => {
           console.log(createdUser)
-          createdUser.user.
-            updateProfile({
+          createdUser.user
+            .updateProfile({
               displayName: this.state.username,
               photoURL: `http://gravatar.com/avatar/${md5(createdUser.user.email)}?d=identicon`
             })
