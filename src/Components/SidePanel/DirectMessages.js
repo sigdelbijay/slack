@@ -33,7 +33,6 @@ class DirectMessages extends React.Component {
     })
 
     this.state.connectedRef.on('value', snap => {
-      console.log("snap", snap.val())
       if (snap.val() === true) {
         const ref = this.state.presenceRef.child(currentUserUid);
         ref.set(true)
