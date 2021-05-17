@@ -9,7 +9,9 @@ import Message from './Message'
 
 class Messages extends React.Component {
   state = {
-    messagesRef: firebase.database().ref("messages"),
+    isPrivateChannel: this.props.isPrivateChannel,
+    privateMessagesRef: firebase.database().ref('privateMessages'),
+    messagesRef: firebase.database().ref('messages'),
     channel: this.props.currentChannel,
     user: this.props.currentUser,
     messages: [],
@@ -29,7 +31,8 @@ class Messages extends React.Component {
 
   addMessageListeners = channelId => {
     let loadedMessages = []
-    this.state.messagesRef.child(channelId).on('child_added', snap => {
+    let ref = this.getMessagesRef()
+    ref.child(channelId).on('child_added', snap => {
       loadedMessages.push(snap.val())
       this.setState({
         messages: loadedMessages,
@@ -58,6 +61,11 @@ class Messages extends React.Component {
     ))
   )
 
+  getMessagesRef = () => {
+    const { messagesRef, privateMessagesRef, isPrivateChannel } = this.state
+    return isPrivateChannel ? privateMessagesRef : messagesRef
+  }
+
   handleSearchChange = event => {
     this.setState({
       searchTerm: event.target.value,
@@ -78,17 +86,18 @@ class Messages extends React.Component {
     setTimeout(() => this.setState({searchLoading: false}), 1000)
   }
 
-  // displayChannelName = channel => channel ? `#${channel.name}` : ''
+  displayChannelName = channel => channel ? `${this.state.isPrivateChannel ? '@' : '#'}${channel.name}` : ''
 
   render() {
-    const { messagesRef, channel, user, messages, numUniqueUsers, searchTerm, searchLoading, searchResults } = this.state
+    const { channel, user, messages, numUniqueUsers, searchTerm, searchLoading, searchResults, isPrivateChannel } = this.state
     return (
       <React.Fragment>
         <MessagesHeader
-          channelName={channel ? `#${channel.name}` : ''}
+          channelName={this.displayChannelName(channel)}
           numUniqueUsers={numUniqueUsers}
           handleSearchChange={this.handleSearchChange}
           searchLoading={searchLoading}
+          isPrivateChannel={isPrivateChannel}
         />
 
         <Segment>
@@ -97,7 +106,12 @@ class Messages extends React.Component {
           </Comment.Group>
         </Segment>
 
-        <MessageForm messagesRef={messagesRef} currentChannel={channel} currentUser={user}/>
+        <MessageForm
+          currentChannel={channel}
+          currentUser={user}
+          isPrivateChannel={isPrivateChannel}
+          getMessagesRef={this.getMessagesRef}
+        />
       </React.Fragment>
     )
   }

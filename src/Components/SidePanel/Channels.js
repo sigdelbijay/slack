@@ -2,16 +2,19 @@ import firebase from '../../firebase'
 import React from 'react'
 import { Menu, Icon, Modal, Form, Input, Button } from 'semantic-ui-react'
 import { connect } from 'react-redux'
-import { setCurrentChannel } from '../../actions'
+import { setCurrentChannel, setPrivateChannel } from '../../actions'
 
 class Channels extends React.Component {
   state = {
     activeChannel: '',
     user: this.props.currentUser,
+    channel: null,
     channels: [],
     channelName: '',
     channelDetails: '',
     channelsRef: firebase.database().ref("channels"),
+    messagesRef: firebase.database().ref('messages'),
+    notifications: [],
     modal: false,
     firstLoad: true
   }
@@ -40,6 +43,7 @@ class Channels extends React.Component {
     const firstChannel = this.state.channels[0]
     if (this.state.firstLoad && this.state.channels.length > 0) {
       this.props.setCurrentChannel(firstChannel)
+      // this.props.setPrivateChannel(false)
       this.setActiveChannel(firstChannel)
     }
     this.setState({firstLoad: false})
@@ -90,6 +94,8 @@ class Channels extends React.Component {
   changeChannel = channel => {
     this.setActiveChannel(channel)
     this.props.setCurrentChannel(channel)
+    this.props.setPrivateChannel(false)
+    this.setState({channel})
   }
 
   displayChannels = channels => channels.map(channel => (
@@ -110,7 +116,7 @@ class Channels extends React.Component {
     return (
       <React.Fragment>
         {/* Channels */}
-        <Menu.Menu style={{ paddingBottom: '2em' }}>
+        <Menu.Menu className="menu">
           <Menu.Item>
             <span>
               <Icon name="exchange"/> CHANNELS
@@ -159,4 +165,4 @@ class Channels extends React.Component {
   }
 }
 
-export default connect(null, {setCurrentChannel})(Channels)
+export default connect(null, {setCurrentChannel, setPrivateChannel})(Channels)
