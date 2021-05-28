@@ -1,5 +1,7 @@
 import React from 'react'
 import { Segment, Comment } from 'semantic-ui-react'
+import { connect } from 'react-redux'
+import { setUserPosts } from '../../actions'
 
 import MessagesHeader from './MessagesHeader'
 import MessageForm from './MessageForm'
@@ -13,19 +15,22 @@ class Messages extends React.Component {
     privateMessagesRef: firebase.database().ref('privateMessages'),
     messagesRef: firebase.database().ref('messages'),
     channel: this.props.currentChannel,
+    isChannelStarred: false,
+    usersRef: firebase.database().ref('users'),
     user: this.props.currentUser,
     messages: [],
     messagesLoading: true,
     numUniqueUsers: '',
     searchTerm: '',
     searchLoading: false,
-    searchResults: []
+    searchResults: [],
   }
 
   componentDidMount() {
     const { channel, user } = this.state
     if (channel && user) {
       this.addMessageListeners(channel.id)
+      this.addUserStarsListeners(channel.id, user.uid)
     }
   }
 
@@ -38,8 +43,24 @@ class Messages extends React.Component {
         messages: loadedMessages,
         messageLoading: false
       })
+
       this.countUniqueUsers(loadedMessages)
+      this.countUserPosts(loadedMessages)
     })
+  }
+
+  addUserStarsListeners = (channelId, userId) => {
+    this.state.usersRef
+      .child(userId)
+      .child('starred')
+      .once('value')
+      .then(data => {
+        if (data.val() !== null) {
+          const channelIds = Object.keys(data.val())
+          const prevStarred = channelIds.includes(channelId)
+          this.setState({isChannelStarred: prevStarred})
+        }
+      })
   }
 
   countUniqueUsers = messages => {
@@ -53,6 +74,21 @@ class Messages extends React.Component {
     const plural = uniqueUsers.length > 1 || uniqueUsers.length === 0
     const numUniqueUsers = `${uniqueUsers.length} user${plural ? 's' : ''}`
     this.setState({numUniqueUsers})
+  }
+
+  countUserPosts = messages => {
+    let userPosts = messages.reduce((acc, message) => {
+      if (message.user.name in acc) {
+        acc[message.user.name].count += 1
+      } else {
+        acc[message.user.name] = {
+          avatar: message.user.avatar,
+          count: 1
+        }
+      }
+      return acc
+    }, {})
+    this.props.setUserPosts(userPosts)
   }
 
   displayMessages = messages => (
@@ -88,8 +124,42 @@ class Messages extends React.Component {
 
   displayChannelName = channel => channel ? `${this.state.isPrivateChannel ? '@' : '#'}${channel.name}` : ''
 
+  handleStar = () => {
+    this.setState(prevState => ({
+      isChannelStarred: !prevState.isChannelStarred
+    }), () => this.starChannel())
+  }
+
+  starChannel = () => {
+    console.log("console", this.state.isChannelStarred)
+    if (this.state.isChannelStarred) {
+      this.state.usersRef
+        .child(`${this.state.user.uid}/starred`)
+        .update({
+          [this.state.channel.id]: {
+            name: this.state.channel.name,
+            details: this.state.channel.details,
+            createdBy: {
+              name: this.state.channel.createdBy.name,
+              avatar: this.state.channel.createdBy.avatar
+            }
+          }
+        })
+    } else {
+      this.state.usersRef
+        .child(`${this.state.user.uid}/starred`)
+        .child(this.state.channel.id)
+        .remove(err => {
+          if (err !== null) {
+            console.error(err)
+          }
+        })
+    }
+  }
+
   render() {
-    const { channel, user, messages, numUniqueUsers, searchTerm, searchLoading, searchResults, isPrivateChannel } = this.state
+    const { channel, user, messages, numUniqueUsers, searchTerm,
+      searchLoading, searchResults, isPrivateChannel, isChannelStarred } = this.state
     return (
       <React.Fragment>
         <MessagesHeader
@@ -98,6 +168,8 @@ class Messages extends React.Component {
           handleSearchChange={this.handleSearchChange}
           searchLoading={searchLoading}
           isPrivateChannel={isPrivateChannel}
+          handleStar={this.handleStar}
+          isChannelStarred={isChannelStarred}
         />
 
         <Segment>
@@ -117,4 +189,4 @@ class Messages extends React.Component {
   }
 }
 
-export default Messages;
+export default connect(null, {setUserPosts})(Messages);
