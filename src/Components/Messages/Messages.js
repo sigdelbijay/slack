@@ -7,6 +7,7 @@ import MessagesHeader from './MessagesHeader'
 import MessageForm from './MessageForm'
 import firebase from '../../firebase'
 import Message from './Message'
+import Typing from './Typing'
 
 
 class Messages extends React.Component {
@@ -14,6 +15,8 @@ class Messages extends React.Component {
     isPrivateChannel: this.props.isPrivateChannel,
     privateMessagesRef: firebase.database().ref('privateMessages'),
     messagesRef: firebase.database().ref('messages'),
+    typingRef: firebase.database().ref('typing'),
+    connectedRef: firebase.database().ref('.info/connected'), //check if user is online or not
     channel: this.props.currentChannel,
     isChannelStarred: false,
     usersRef: firebase.database().ref('users'),
@@ -24,6 +27,7 @@ class Messages extends React.Component {
     searchTerm: '',
     searchLoading: false,
     searchResults: [],
+    typingUsers: []
   }
 
   componentDidMount() {
@@ -31,6 +35,7 @@ class Messages extends React.Component {
     if (channel && user) {
       this.addMessageListeners(channel.id)
       this.addUserStarsListeners(channel.id, user.uid)
+      this.addTypingListeners(channel.id, user.uid)
     }
   }
 
@@ -61,6 +66,41 @@ class Messages extends React.Component {
           this.setState({isChannelStarred: prevStarred})
         }
       })
+  }
+
+  addTypingListeners = (channelId, userId) => {
+    let typingUsers = []
+    this.state.typingRef.child(channelId).on('child_added', snap => {
+      if (snap.key !== userId) {
+        typingUsers = typingUsers.concat({
+          id: snap.key,
+          name: snap.val()
+        })
+        this.setState({typingUsers})
+      }
+    })
+
+    this.state.typingRef.child(channelId).on('child_removed', snap => {
+      const index = typingUsers.findIndex(user => user.id === snap.key)
+      if (index !== -1) {
+        typingUsers = typingUsers.filter(user => user.id !== snap.key)
+        this.setState({typingUsers})
+      }
+    })
+
+    this.state.connectedRef.on('value', snap => {
+      if (snap.val() === true) {
+        this.state.typingRef
+          .child(channelId)
+          .child(this.state.user.uid)
+          .onDisconnect()
+          .remove(err => {
+            if (err !== null) {
+              console.log(err)
+            }
+          })
+      }
+    })
   }
 
   countUniqueUsers = messages => {
@@ -94,6 +134,17 @@ class Messages extends React.Component {
   displayMessages = messages => (
     messages.length > 0 && messages.map(message => (
       <Message message={message} user={this.state.user} key={message.timestamp}/>
+    ))
+  )
+
+  displayTypingUsers = users => (
+    users.length > 0 && users.map(user => (
+      <div
+        style={{ display: "flex", alignItems: "center", marginBottom: "0.2em" }}
+        key={user.id}
+      >
+        <span className="user__typing">{user.name} is typing</span> <Typing />
+      </div>
     ))
   )
 
@@ -159,7 +210,7 @@ class Messages extends React.Component {
 
   render() {
     const { channel, user, messages, numUniqueUsers, searchTerm,
-      searchLoading, searchResults, isPrivateChannel, isChannelStarred } = this.state
+      searchLoading, searchResults, isPrivateChannel, isChannelStarred, typingUsers } = this.state
     return (
       <React.Fragment>
         <MessagesHeader
@@ -175,6 +226,7 @@ class Messages extends React.Component {
         <Segment>
           <Comment.Group className="messages">
             {this.displayMessages(searchTerm ? searchResults : messages)}
+            {this.displayTypingUsers(typingUsers)}
           </Comment.Group>
         </Segment>
 

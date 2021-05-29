@@ -17,13 +17,31 @@ class MessageForm extends React.Component {
     uploadTask: null,
     uploadState: '',
     percentUploaded: 0,
-    isPrivateChannel: this.props.isPrivateChannel
+    isPrivateChannel: this.props.isPrivateChannel,
+    typingRef: firebase.database().ref('typing')
   }
 
   openModal = () => this.setState({ modal: true })
   closeModal = () => this.setState({modal: false})
 
   handleChange = e => this.setState({ [e.target.name]: e.target.value })
+
+  handleKeyDown = () => {
+    const { message, typingRef, channel, user } = this.state
+    
+    if (message) {
+      typingRef
+        .child(channel.id)
+        .child(user.uid)
+        .set(user.displayName)
+    }
+    else {
+      typingRef
+        .child(channel.id)
+        .child(user.uid)
+        .remove()
+    }
+  }
 
   createMessage = (fileUrl = null) => {
     const message = {
@@ -44,7 +62,7 @@ class MessageForm extends React.Component {
   
   sendMessage = () => {
     const { getMessagesRef } = this.props
-    const { message, channel } = this.state
+    const { message, channel, typingRef, user } = this.state
     if (message) {
       this.setState({ loading: true })
       getMessagesRef()
@@ -52,7 +70,8 @@ class MessageForm extends React.Component {
         .push()
         .set(this.createMessage())
         .then(() => {
-          this.setState({loading: false, message: '', errors: []})
+          this.setState({ loading: false, message: '', errors: [] })
+          typingRef.child(channel.id).child(user.uid).remove()
         })
         .catch(err => {
           console.log(err)
@@ -132,6 +151,7 @@ class MessageForm extends React.Component {
           placeholder="Write your message"
           value={message}
           onChange={this.handleChange}
+          onKeyDown={this.handleKeyDown}
           className={
             errors.some(error => error.message.includes("message")) ? "error" : ""
           }
