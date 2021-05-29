@@ -25,12 +25,24 @@ class MessageForm extends React.Component {
     emojiPicker: false
   }
 
+  componentWillUnmount() {
+    if (this.state.uploadTask !== null) {
+      this.state.uploadTask.cancel()
+      this.setState({uploadTask: null})
+    }
+  }
+
   openModal = () => this.setState({ modal: true })
   closeModal = () => this.setState({modal: false})
 
   handleChange = e => this.setState({ [e.target.name]: e.target.value })
 
-  handleKeyDown = () => {
+  handleKeyDown = event => {
+    //send message on Ctrl+Enter => event.ctrlKey && event.keyCode
+    if (event.keyCode === 13) {
+      this.sendMessage();
+    }
+
     const { message, typingRef, channel, user } = this.state
     
     if (message) {
@@ -115,7 +127,7 @@ class MessageForm extends React.Component {
     }
   }
 
-  getPath = () => this.props.isPrivateChannel ? `chat/private-${this.state.channel.id}`: 'chat/public' //this.state.isPrivateChannel
+  getPath = () => this.props.isPrivateChannel ? `chat/private/${this.state.channel.id}`: 'chat/public' //this.state.isPrivateChannel
 
   uploadFile = (file, metadata) => {
     const pathToUpload = this.state.channel.id
