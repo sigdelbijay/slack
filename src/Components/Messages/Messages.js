@@ -39,6 +39,16 @@ class Messages extends React.Component {
     }
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    if (this.messageEnd) {
+      this.scrollToBottom()
+    }
+  }
+
+  scrollToBottom = () => {
+    this.messageEnd.scrollIntoView({behavior: 'smooth'})
+  }
+
   addMessageListeners = channelId => {
     let loadedMessages = []
     let ref = this.getMessagesRef()
@@ -227,6 +237,7 @@ class Messages extends React.Component {
           <Comment.Group className="messages">
             {this.displayMessages(searchTerm ? searchResults : messages)}
             {this.displayTypingUsers(typingUsers)}
+            <div ref={node=> (this.messageEnd = node)} />
           </Comment.Group>
         </Segment>
 
