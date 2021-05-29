@@ -8,7 +8,7 @@ import MessageForm from './MessageForm'
 import firebase from '../../firebase'
 import Message from './Message'
 import Typing from './Typing'
-
+import Skeleton from './Skeleton'
 
 class Messages extends React.Component {
   state = {
@@ -46,7 +46,7 @@ class Messages extends React.Component {
   }
 
   scrollToBottom = () => {
-    this.messageEnd.scrollIntoView({behavior: 'smooth'})
+    this.messageEnd.scrollIntoView({ behavior: 'smooth' })
   }
 
   addMessageListeners = channelId => {
@@ -56,7 +56,7 @@ class Messages extends React.Component {
       loadedMessages.push(snap.val())
       this.setState({
         messages: loadedMessages,
-        messageLoading: false
+        messagesLoading: false
       })
 
       this.countUniqueUsers(loadedMessages)
@@ -73,7 +73,7 @@ class Messages extends React.Component {
         if (data.val() !== null) {
           const channelIds = Object.keys(data.val())
           const prevStarred = channelIds.includes(channelId)
-          this.setState({isChannelStarred: prevStarred})
+          this.setState({ isChannelStarred: prevStarred })
         }
       })
   }
@@ -86,7 +86,7 @@ class Messages extends React.Component {
           id: snap.key,
           name: snap.val()
         })
-        this.setState({typingUsers})
+        this.setState({ typingUsers })
       }
     })
 
@@ -94,7 +94,7 @@ class Messages extends React.Component {
       const index = typingUsers.findIndex(user => user.id === snap.key)
       if (index !== -1) {
         typingUsers = typingUsers.filter(user => user.id !== snap.key)
-        this.setState({typingUsers})
+        this.setState({ typingUsers })
       }
     })
 
@@ -123,7 +123,7 @@ class Messages extends React.Component {
 
     const plural = uniqueUsers.length > 1 || uniqueUsers.length === 0
     const numUniqueUsers = `${uniqueUsers.length} user${plural ? 's' : ''}`
-    this.setState({numUniqueUsers})
+    this.setState({ numUniqueUsers })
   }
 
   countUserPosts = messages => {
@@ -143,7 +143,7 @@ class Messages extends React.Component {
 
   displayMessages = messages => (
     messages.length > 0 && messages.map(message => (
-      <Message message={message} user={this.state.user} key={message.timestamp}/>
+      <Message message={message} user={this.state.user} key={message.timestamp} />
     ))
   )
 
@@ -180,7 +180,7 @@ class Messages extends React.Component {
       return acc;
     }, [])
     this.setState({ searchResults })
-    setTimeout(() => this.setState({searchLoading: false}), 1000)
+    setTimeout(() => this.setState({ searchLoading: false }), 1000)
   }
 
   displayChannelName = channel => channel ? `${this.state.isPrivateChannel ? '@' : '#'}${channel.name}` : ''
@@ -218,9 +218,19 @@ class Messages extends React.Component {
     }
   }
 
+  displayMessagesSkeleton = loading => (
+    loading ? (
+      <React.Fragment>
+        {[...Array(10)].map((_, i) => (
+          <Skeleton key={i} />
+        ))}
+      </React.Fragment>
+    ) : null
+  )
+
   render() {
     const { channel, user, messages, numUniqueUsers, searchTerm,
-      searchLoading, searchResults, isPrivateChannel, isChannelStarred, typingUsers } = this.state
+      searchLoading, searchResults, isPrivateChannel, isChannelStarred, typingUsers, messagesLoading } = this.state
     return (
       <React.Fragment>
         <MessagesHeader
@@ -235,6 +245,7 @@ class Messages extends React.Component {
 
         <Segment>
           <Comment.Group className="messages">
+            {this.displayMessagesSkeleton(messagesLoading)}
             {this.displayMessages(searchTerm ? searchResults : messages)}
             {this.displayTypingUsers(typingUsers)}
             <div ref={node=> (this.messageEnd = node)} />
